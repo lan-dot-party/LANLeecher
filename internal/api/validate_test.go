@@ -195,6 +195,16 @@ func TestResponsesMatchSpec(t *testing.T) {
 		{"POST", "/api/v1/events/" + f.liveSlug + "/stop", f.full, "", 200},
 		{"GET", "/api/v1/rankings/download", f.full, "", 404}, // no event running now
 		{"POST", "/api/v1/events", f.full, `{"name": "Basement LAN #13", "notes": "API test"}`, 201},
+		{"GET", "/api/v1/schedules", f.full, "", 200},
+		{"GET", "/api/v1/schedules?all=true", f.full, "", 200},
+		{"GET", "/api/v1/schedules", f.boardOnly, "", 403},
+		{"POST", "/api/v1/schedules", f.full, `{"name": "Basement LAN #14", "starts_at": "2099-04-15T00:00:00+02:00", "ends_at": "2099-04-19T00:00:00+02:00"}`, 201},
+		{"POST", "/api/v1/schedules", f.full, `{"name": "Overlap", "starts_at": "2099-04-18T00:00:00+02:00", "ends_at": "2099-04-20T00:00:00+02:00"}`, 409},
+		{"POST", "/api/v1/schedules", f.full, `{"name": "Past", "starts_at": "2020-04-15T00:00:00Z", "ends_at": "2020-04-19T00:00:00Z"}`, 400},
+		{"POST", "/api/v1/schedules", f.full, `{"name": "x"}`, 400},
+		{"GET", "/api/v1/schedules", f.full, "", 200},
+		{"DELETE", "/api/v1/schedules/1", f.full, "", 204},
+		{"DELETE", "/api/v1/schedules/1", f.full, "", 404},
 	}
 
 	covered := map[string]bool{}

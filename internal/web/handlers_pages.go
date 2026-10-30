@@ -45,6 +45,8 @@ type dashboardData struct {
 	Switches []*store.Switch
 	// DHCPProblems are DHCP sources that need an admin (admins only).
 	DHCPProblems []*store.DHCPSource
+	// NextSchedule is the next planned event while none is running.
+	NextSchedule *store.EventSchedule
 }
 
 func (s *Server) dashboardData(r *http.Request, p *Page) (*dashboardData, error) {
@@ -60,6 +62,17 @@ func (s *Server) dashboardData(r *http.Request, p *Page) (*dashboardData, error)
 	}
 	ev, err := s.DB.ActiveEvent(ctx)
 	if errors.Is(err, store.ErrNotFound) {
+		schedules, err := s.DB.ListEventSchedules(ctx, false)
+		if err != nil {
+			return nil, err
+		}
+		now := store.Now()
+		for _, sc := range schedules {
+			if sc.State(now) == store.SchedulePlanned {
+				d.NextSchedule = sc
+				break
+			}
+		}
 		return d, nil
 	}
 	if err != nil {
@@ -394,6 +407,11 @@ func (s *Server) mergeDecide(w http.ResponseWriter, r *http.Request) {
 	redirect(w, r, back+"?ok=saved")
 }
 
+type scheduleRow struct {
+	*store.EventSchedule
+	State string
+}
+
 type eventRow struct {
 	Event   *store.Event
 	Summary store.EventSummary
@@ -415,8 +433,18 @@ func (s *Server) events(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		Rows        []eventRow
 		Active      *store.Event
+		Schedules   []scheduleRow
 		Q, From, To string
 	}{Q: q.Get("q"), From: q.Get("from"), To: q.Get("to")}
+	schedules, err := s.DB.ListEventSchedules(ctx, false)
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	now := store.Now()
+	for _, sc := range schedules {
+		data.Schedules = append(data.Schedules, scheduleRow{sc, sc.State(now)})
+	}
 	for _, e := range events {
 		sum, err := s.DB.EventSummary(ctx, e.ID)
 		if err != nil {

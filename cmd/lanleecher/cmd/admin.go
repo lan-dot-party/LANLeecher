@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -29,7 +30,13 @@ func init() {
 	userCmd.AddCommand(userCreateCmd, userPasswdCmd, userListCmd)
 
 	eventStartCmd.Flags().String("notes", "", "optional notes")
-	eventCmd.AddCommand(eventStartCmd, eventStopCmd, eventListCmd)
+	eventScheduleCmd.Flags().String("start", "", "first day, YYYY-MM-DD (required)")
+	eventScheduleCmd.Flags().String("end", "", "last day, inclusive, YYYY-MM-DD (required)")
+	eventScheduleCmd.Flags().String("start-time", "", "start time HH:MM on the first day (default 00:00)")
+	eventScheduleCmd.Flags().String("end-time", "", "end time HH:MM on the last day (default 24:00)")
+	eventScheduleCmd.Flags().String("notes", "", "optional notes")
+	eventSchedulesCmd.Flags().Bool("all", false, "include schedules whose event has ended")
+	eventCmd.AddCommand(eventStartCmd, eventStopCmd, eventListCmd, eventScheduleCmd, eventSchedulesCmd, eventUnscheduleCmd)
 
 	switchAddCmd.Flags().String("name", "", "display name (required)")
 	switchAddCmd.Flags().String("host", "", "IP or hostname (required)")
@@ -198,7 +205,7 @@ var userListCmd = &cobra.Command{
 	},
 }
 
-var eventCmd = &cobra.Command{Use: "event", Short: "Start and stop events"}
+var eventCmd = &cobra.Command{Use: "event", Short: "Start, stop and plan events"}
 
 var eventStartCmd = &cobra.Command{
 	Use:   "start <name>",
@@ -266,6 +273,94 @@ var eventListCmd = &cobra.Command{
 			fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", ev.Slug, ev.Name, ev.StartedAt.Local().Format(time.DateTime), ended)
 		}
 		return tw.Flush()
+	},
+}
+
+var eventScheduleCmd = &cobra.Command{
+	Use:   "schedule <name>",
+	Short: "Plan an event that starts and stops by itself (dates in the local time zone)",
+	Example: `  lanleecher event schedule "Basement LAN #13" --start 2027-04-15 --end 2027-04-18
+  lanleecher event schedule "Basement LAN #13" --start 2027-04-15 --start-time 18:00 --end 2027-04-18 --end-time 14:00`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		f := cmd.Flags()
+		startDate, _ := f.GetString("start")
+		endDate, _ := f.GetString("end")
+		startTime, _ := f.GetString("start-time")
+		endTime, _ := f.GetString("end-time")
+		notes, _ := f.GetString("notes")
+		start, end, ok := store.ParseScheduleWindow(startDate, startTime, endDate, endTime, time.Local)
+		if !ok {
+			return errors.New("need --start and --end as YYYY-MM-DD (times as HH:MM), with the end after the start")
+		}
+		e, err := open(cmd.Context())
+		if err != nil {
+			return err
+		}
+		defer e.close()
+		s := &store.EventSchedule{Name: args[0], Notes: notes, StartsAt: start, EndsAt: end}
+		if err := e.db.CreateEventSchedule(cmd.Context(), s); err != nil {
+			return err
+		}
+		e.audit(cmd.Context(), store.AuditEntry{Actor: "cli", Action: "schedule.create", Target: strconv.FormatInt(s.ID, 10),
+			Details: s.Name})
+		fmt.Printf("event %q planned (#%d): %s – %s\n", s.Name, s.ID,
+			start.Local().Format(time.DateTime), end.Local().Format(time.DateTime))
+		return nil
+	},
+}
+
+var eventSchedulesCmd = &cobra.Command{
+	Use:   "schedules",
+	Short: "List planned events",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		all, _ := cmd.Flags().GetBool("all")
+		e, err := open(cmd.Context())
+		if err != nil {
+			return err
+		}
+		defer e.close()
+		list, err := e.db.ListEventSchedules(cmd.Context(), all)
+		if err != nil {
+			return err
+		}
+		now := store.Now()
+		tw := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+		fmt.Fprintln(tw, "ID\tNAME\tSTARTS\tENDS\tSTATE\tEVENT")
+		for _, s := range list {
+			slug := "-"
+			if s.Event != nil {
+				slug = s.Event.Slug
+			}
+			fmt.Fprintf(tw, "%d\t%s\t%s\t%s\t%s\t%s\n", s.ID, s.Name, s.StartsAt.Local().Format(time.DateTime),
+				s.EndsAt.Local().Format(time.DateTime), s.State(now), slug)
+		}
+		return tw.Flush()
+	},
+}
+
+var eventUnscheduleCmd = &cobra.Command{
+	Use:   "unschedule <id>",
+	Short: "Delete a planned event (an event it already started keeps running)",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		id, err := strconv.ParseInt(args[0], 10, 64)
+		if err != nil {
+			return errors.New("id must be a number, see 'event schedules'")
+		}
+		e, err := open(cmd.Context())
+		if err != nil {
+			return err
+		}
+		defer e.close()
+		if err := e.db.DeleteEventSchedule(cmd.Context(), id); errors.Is(err, store.ErrNotFound) {
+			return fmt.Errorf("no planned event #%d", id)
+		} else if err != nil {
+			return err
+		}
+		e.audit(cmd.Context(), store.AuditEntry{Actor: "cli", Action: "schedule.delete", Target: args[0]})
+		fmt.Printf("planned event #%d deleted\n", id)
+		return nil
 	},
 }
 

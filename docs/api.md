@@ -52,6 +52,9 @@ Logged-in users have `read:*` as viewers and `write:events` from operator upward
 | `GET /api/v1/events/{slug}` | read:rankings | Event with totals |
 | `POST /api/v1/events` | write:events | Start an event (stops the running one) |
 | `POST /api/v1/events/{slug}/stop` | write:events | Stop the running event |
+| `GET /api/v1/schedules` | read:rankings | Planned events (`all=true` includes finished ones) |
+| `POST /api/v1/schedules` | write:events | Plan an event: `name`, `starts_at`, `ends_at` (exclusive), `notes` |
+| `DELETE /api/v1/schedules/{id}` | write:events | Delete a planned event |
 | `GET /api/v1/clients/search?q=` | read:clients | Search by partial MAC, IP or hostname |
 | `GET /api/v1/clients/mac/{mac}` | read:clients | Totals per event (`events=N`), IP and hostname history, ports |
 | `GET /api/v1/clients/mac/{mac}/timeseries` | read:clients | 5-minute buckets of one event |
@@ -105,6 +108,14 @@ Start an event from a script:
 ```bash
 curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"name": "Basement LAN #13"}' https://lanleecher.example/api/v1/events
+```
+
+Plan an event from 15 to 18 April inclusive (end is exclusive, so midnight after the last day):
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"name": "Basement LAN #13", "starts_at": "2027-04-15T00:00:00+02:00", "ends_at": "2027-04-19T00:00:00+02:00"}' \
+  https://lanleecher.example/api/v1/schedules
 ```
 
 Follow the board live:

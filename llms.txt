@@ -5,6 +5,7 @@
 
 Key concepts (details in docs/concepts.md):
 - Event: a LAN party. Traffic is only booked while an event is running; at most one is active.
+  Planned events (schedules) start and stop by themselves within a date range.
 - Device: one or more MACs (merged by an admin) that belong to one machine.
 - Port group: a switch port with several clients (small switch); one shared ranking entry.
 - Port roles: client, multi-client, server (hidden by default), uplink (never attributed to a MAC).

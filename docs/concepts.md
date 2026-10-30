@@ -10,6 +10,16 @@ time; starting a new event stops the running one. Without a running event, LANLe
 frozen. Events are addressed by their **slug**, derived from the name (`Basement LAN #12` →
 `basement-lan-12`).
 
+## Planned event
+
+An event with a date range that LANLeecher starts and stops by itself, so nobody has to remember
+to click "Start event". Dates are entered in the server's time zone; the last day is inclusive.
+Without times, a planned event for 15 to 18 April runs from 15 April 00:00 to 19 April 00:00.
+At the start, a running event is stopped as with a manual start. A planned event can be started
+early ("Start now"); it still stops at its end. An event stopped by hand is not restarted, and
+planned events must not overlap. If LANLeecher was not running during the whole period, the
+planned event is shown as **missed**; if it comes back during the period, the event starts then.
+
 ## Switch and port
 
 A **switch** is polled via SNMP v2c or v3. Every interface it reports becomes a **port**. Ports are

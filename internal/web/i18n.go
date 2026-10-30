@@ -64,6 +64,22 @@ var messages = map[string][2]string{
 	"events.compare":          {"Events vergleichen", "Compare events"},
 	"events.compare_hint":     {"Wähle bis zu drei Events.", "Pick up to three events."},
 
+	"schedules.title":                  {"Geplante Events", "Planned events"},
+	"schedules.window":                 {"Zeitraum", "Period"},
+	"schedules.state":                  {"Status", "State"},
+	"schedules.planned":                {"geplant", "planned"},
+	"schedules.missed":                 {"verpasst", "missed"},
+	"schedules.start_date":             {"Erster Tag", "First day"},
+	"schedules.start_time":             {"Startzeit (optional)", "Start time (optional)"},
+	"schedules.end_date":               {"Letzter Tag (einschließlich)", "Last day (inclusive)"},
+	"schedules.end_time":               {"Endzeit (optional)", "End time (optional)"},
+	"schedules.create":                 {"Event planen", "Plan event"},
+	"schedules.hint":                   {"Das Event startet und endet automatisch. Ohne Uhrzeit läuft es von 0:00 Uhr am ersten bis 24:00 Uhr am letzten Tag (Zeitzone des Servers).", "The event starts and stops by itself. Without times it runs from 00:00 on the first day to 24:00 on the last day (server time zone)."},
+	"schedules.start_now":              {"Jetzt starten", "Start now"},
+	"schedules.delete_confirm":         {"Geplantes Event löschen?", "Delete this planned event?"},
+	"schedules.delete_running_confirm": {"Planung löschen? Das laufende Event läuft weiter und wird nicht mehr automatisch beendet.", "Delete the plan? The running event keeps running and is no longer stopped automatically."},
+	"schedules.next":                   {"Nächstes geplantes Event", "Next planned event"},
+
 	"dashboard.active_event":  {"Aktives Event", "Active event"},
 	"dashboard.since":         {"seit", "since"},
 	"dashboard.clients":       {"Clients", "Clients"},
@@ -337,6 +353,9 @@ var messages = map[string][2]string{
 	"error.locked":             {"Zu viele Fehlversuche. Bitte in ein paar Minuten erneut versuchen.", "Too many failed attempts. Please try again in a few minutes."},
 	"error.login":              {"Benutzername oder Passwort falsch.", "Wrong username or password."},
 	"error.bad_request":        {"Ungültige Eingabe.", "Invalid input."},
+	"error.schedule_invalid":   {"Ungültiger Zeitraum: Das Ende muss nach dem Start und in der Zukunft liegen.", "Invalid period: the end must be after the start and in the future."},
+	"error.schedule_overlap":   {"Der Zeitraum überschneidet sich mit einem anderen geplanten Event.", "The period overlaps another planned event."},
+	"error.schedule_state":     {"Dieses geplante Event wurde schon gestartet oder ist vorbei.", "This planned event has already started or is over."},
 	"error.too_long":           {"Eingabe zu lang.", "Input too long."},
 	"error.wrong_password":     {"Aktuelles Passwort ist falsch.", "Current password is wrong."},
 	"error.password_short":     {"Das Passwort braucht mindestens 10 Zeichen.", "The password needs at least 10 characters."},
@@ -362,6 +381,7 @@ var messages = map[string][2]string{
 	"flash.revoked":       {"Widerrufen.", "Revoked."},
 	"flash.event_started": {"Event gestartet – ab jetzt wird gezählt.", "Event started – counting from now on."},
 	"flash.event_stopped": {"Event beendet.", "Event stopped."},
+	"flash.scheduled":     {"Event geplant – es startet und endet automatisch.", "Event planned – it starts and stops by itself."},
 }
 
 func hasKey(key string) bool {

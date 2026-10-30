@@ -202,6 +202,7 @@ The model separates master data (switches, ports, devices), running state (last 
 | `port_counter_state` | port\_id, in\_raw, out\_raw, counter\_bits, sys\_uptime, discontinuity, polled\_at | Last raw value for delta computation |
 | `port_traffic_totals` | event\_id, port\_id, bytes\_down, bytes\_up, updated\_at | Traffic of every port per event, uplinks included |
 | `events` | id, name, slug, started\_at, ended\_at, notes | LAN events; at most one active |
+| `event_schedules` | id, name, notes, starts\_at, ends\_at (exclusive), event\_id, created\_at | Planned events; `event_id` links the event once started |
 | `devices` | id, display\_name, hidden\_in\_rankings, notes | A device, possibly with several MACs after a merge |
 | `macs` | mac (PK), device\_id, vendor (OUI), first\_seen, last\_seen | Known MAC addresses |
 | `mac_locations` | mac, port\_id, vlan, first\_seen, last\_seen | Where a MAC was learned |
@@ -232,6 +233,7 @@ Traffic is always booked into an active event. Without an active event, LANLeech
 - Compare events side by side, each with top uploaders and top downloaders; also rankings across all events ("Who uploaded the most over all LANs?").
 - Export per event as CSV and JSON, always with both directions.
 - Via CLI: `lanleecher event start "Name"` and `lanleecher event stop`, e.g. for scripts on setup day.
+- **Planned events:** an operator enters name, first and last day (inclusive) and optional start/end times in the server's time zone. A planner goroutine wakes at the next start or end (at least every 30 s), starts the event (stopping a running one, as a manual start does) and stops it at the end. Starting early ("Start now") links the event to the plan, so it still stops on time. An event stopped or replaced by hand is left alone. Plans must not overlap. A period that passed entirely while LANLeecher was down is shown as "missed". Start and stop are audited with actor `schedule`. CLI: `event schedule`, `event schedules`, `event unschedule`.
 
 ### Managing ports
 
@@ -261,7 +263,7 @@ The web UI is entirely behind a login; roles and usage follow LANPilot so that o
 - **Rankings** – top downloaders, top uploaders, total; filter by event, switch, time range; top 10/20/50 selectable; hidden ports and devices can be shown temporarily.
 - **Search** – one search field for MAC (any notation), IP or hostname, also partial matches.
 - **Device/MAC detail** – download and upload totals per event, timeline of both directions, IP and hostname history, ports, merge suggestions.
-- **Events** – create, start, stop, search, compare, export.
+- **Events** – create, start, stop, plan with a date range, search, compare, export.
 - **Switches & ports** – add a switch, test the connection, set port roles, uplink hints.
 - **Admin** – users, API tokens, audit log, settings overview.
 
@@ -314,6 +316,8 @@ The API is a JSON REST API under `/api/v1`, secured with bearer tokens that admi
 | `GET /api/v1/clients/search?q=` | read:clients | Free search over MAC, IP, hostname |
 | `GET /api/v1/clients/mac/{mac}/timeseries` | read:clients | 5-minute buckets for graphs |
 | `POST /api/v1/events` / `POST /api/v1/events/{slug}/stop` | write:events | Start/stop an event |
+| `GET /api/v1/schedules` | read:rankings | Planned events |
+| `POST /api/v1/schedules` / `DELETE /api/v1/schedules/{id}` | write:events | Plan / delete a planned event |
 | `GET /api/v1/metrics` | read:rankings | Prometheus format (can be turned off) |
 | `GET /api/` | – | OpenAPI specification + interactive docs |
 

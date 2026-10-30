@@ -55,6 +55,8 @@ var serverCmd = &cobra.Command{
 		a.Board = board.New(e.db, a.Sched.Throughput)
 		a.DHCP = kea.NewManager(e.db, e.key, a.Resolver, log)
 		a.Sched.OnPoll = a.Board.Notify
+		a.Planner = scheduler.NewEventPlanner(e.db, log)
+		a.Planner.OnChange = a.Board.Notify
 
 		ui, err := web.New(a)
 		if err != nil {
@@ -80,6 +82,7 @@ var serverCmd = &cobra.Command{
 		r.With(a.SessionMiddleware).Mount("/", ui.Routes())
 
 		go a.Resolver.Run(ctx)
+		go a.Planner.Run(ctx)
 		if err := a.Sched.Start(ctx); err != nil {
 			return err
 		}

@@ -13,6 +13,7 @@ the API guide, the configuration reference and the OpenAPI specification.
 
 Key concepts (details in docs/concepts.md):
 - Event: a LAN party. Traffic is only booked while an event is running; at most one is active.
+  Planned events (schedules) start and stop by themselves within a date range.
 - Device: one or more MACs (merged by an admin) that belong to one machine.
 - Port group: a switch port with several clients (small switch); one shared ranking entry.
 - Port roles: client, multi-client, server (hidden by default), uplink (never attributed to a MAC).
@@ -53,6 +54,16 @@ time; starting a new event stops the running one. Without a running event, LANLe
 (so counters stay current) but books nothing. A stopped event keeps all its data; its totals are
 frozen. Events are addressed by their **slug**, derived from the name (`Basement LAN #12` →
 `basement-lan-12`).
+
+## Planned event
+
+An event with a date range that LANLeecher starts and stops by itself, so nobody has to remember
+to click "Start event". Dates are entered in the server's time zone; the last day is inclusive.
+Without times, a planned event for 15 to 18 April runs from 15 April 00:00 to 19 April 00:00.
+At the start, a running event is stopped as with a manual start. A planned event can be started
+early ("Start now"); it still stops at its end. An event stopped by hand is not restarted, and
+planned events must not overlap. If LANLeecher was not running during the whole period, the
+planned event is shown as **missed**; if it comes back during the period, the event starts then.
 
 ## Switch and port
 
@@ -242,6 +253,9 @@ Logged-in users have `read:*` as viewers and `write:events` from operator upward
 | `GET /api/v1/events/{slug}` | read:rankings | Event with totals |
 | `POST /api/v1/events` | write:events | Start an event (stops the running one) |
 | `POST /api/v1/events/{slug}/stop` | write:events | Stop the running event |
+| `GET /api/v1/schedules` | read:rankings | Planned events (`all=true` includes finished ones) |
+| `POST /api/v1/schedules` | write:events | Plan an event: `name`, `starts_at`, `ends_at` (exclusive), `notes` |
+| `DELETE /api/v1/schedules/{id}` | write:events | Delete a planned event |
 | `GET /api/v1/clients/search?q=` | read:clients | Search by partial MAC, IP or hostname |
 | `GET /api/v1/clients/mac/{mac}` | read:clients | Totals per event (`events=N`), IP and hostname history, ports |
 | `GET /api/v1/clients/mac/{mac}/timeseries` | read:clients | 5-minute buckets of one event |
@@ -295,6 +309,14 @@ Start an event from a script:
 ```bash
 curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"name": "Basement LAN #13"}' https://lanleecher.example/api/v1/events
+```
+
+Plan an event from 15 to 18 April inclusive (end is exclusive, so midnight after the last day):
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"name": "Basement LAN #13", "starts_at": "2027-04-15T00:00:00+02:00", "ends_at": "2027-04-19T00:00:00+02:00"}' \
+  https://lanleecher.example/api/v1/schedules
 ```
 
 Follow the board live:
@@ -651,6 +673,95 @@ paths:
         "429": {$ref: "#/components/responses/TooManyRequests"}
         "500": {$ref: "#/components/responses/InternalError"}
 
+  /api/v1/schedules:
+    get:
+      tags: [events]
+      operationId: listSchedules
+      summary: List planned events
+      description: |
+        Scope `read:rankings`. LANLeecher starts a planned event at `starts_at` and stops it at `ends_at`
+        (exclusive). Without `all=true`, planned events whose event has ended are left out.
+      parameters:
+        - name: all
+          in: query
+          description: Also return planned events that are done.
+          schema: {type: boolean, default: false}
+      responses:
+        "200":
+          description: Planned events, by start time
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [schedules]
+                properties:
+                  schedules: {type: array, items: {$ref: "#/components/schemas/Schedule"}}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
+        "500": {$ref: "#/components/responses/InternalError"}
+    post:
+      tags: [events]
+      operationId: createSchedule
+      summary: Plan an event that starts and stops by itself
+      description: |
+        Scope `write:events`. The period must end in the future and must not overlap another planned event
+        that is not over. For whole days, send local midnight of the first day and local midnight after the
+        last day, e.g. 15 to 18 April inclusive: `2027-04-15T00:00:00+02:00` to `2027-04-19T00:00:00+02:00`.
+        When the start comes, a running event is stopped, as with `POST /api/v1/events`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, starts_at, ends_at]
+              properties:
+                name: {type: string, minLength: 1}
+                notes: {type: string}
+                starts_at: {type: string, format: date-time}
+                ends_at: {type: string, format: date-time, description: Exclusive.}
+            example: {name: "Basement LAN #13", starts_at: "2027-04-15T00:00:00+02:00", ends_at: "2027-04-19T00:00:00+02:00"}
+      responses:
+        "201":
+          description: Planned
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [schedule]
+                properties:
+                  schedule: {$ref: "#/components/schemas/Schedule"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
+        "500": {$ref: "#/components/responses/InternalError"}
+      x-codeSamples:
+        - lang: curl
+          source: |
+            curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+              -d '{"name":"Basement LAN #13","starts_at":"2027-04-15T00:00:00+02:00","ends_at":"2027-04-19T00:00:00+02:00"}' \
+              https://lanleecher.example/api/v1/schedules
+
+  /api/v1/schedules/{id}:
+    delete:
+      tags: [events]
+      operationId: deleteSchedule
+      summary: Delete a planned event
+      description: Scope `write:events`. An event it already started keeps running but is no longer stopped automatically.
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: integer}}
+      responses:
+        "204": {description: Deleted}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "429": {$ref: "#/components/responses/TooManyRequests"}
+        "500": {$ref: "#/components/responses/InternalError"}
+
   /api/v1/clients/search:
     get:
       tags: [clients]
@@ -992,7 +1103,7 @@ components:
           description: Stable error code.
           enum: [not_found, invalid_token, ip_not_allowed, rate_limited, csrf, unauthorized, insufficient_scope,
                  no_active_event, event_not_found, invalid_parameter, invalid_body, event_not_active, invalid_mac,
-                 mac_not_found, invalid_ip, internal]
+                 mac_not_found, invalid_ip, invalid_schedule, schedule_overlap, schedule_not_found, internal]
     Event:
       type: object
       required: [name, slug, started_at, ended_at, active, notes]
@@ -1003,6 +1114,24 @@ components:
         ended_at: {type: [string, "null"], format: date-time}
         active: {type: boolean}
         notes: {type: string}
+    Schedule:
+      type: object
+      required: [id, name, notes, starts_at, ends_at, state, event]
+      properties:
+        id: {type: integer}
+        name: {type: string}
+        notes: {type: string}
+        starts_at: {type: string, format: date-time}
+        ends_at: {type: string, format: date-time, description: Exclusive.}
+        state:
+          type: string
+          enum: [planned, running, done, missed]
+          description: "`missed`: the period passed while LANLeecher was not running."
+        event:
+          description: The started event, null until the start.
+          oneOf:
+            - {$ref: "#/components/schemas/Event"}
+            - {type: "null"}
     Totals:
       type: object
       required: [bytes_down, bytes_up, clients]

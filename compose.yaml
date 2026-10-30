@@ -10,6 +10,9 @@ services:
     image: ghcr.io/lan-dot-party/lanleecher:latest
     restart: unless-stopped
     network_mode: host
+    # Time zone for displayed times and planned events (default UTC)
+    # environment:
+    #   TZ: Europe/Berlin
     volumes:
       - lanleecher-data:/var/lib/lanleecher
       # Optional: own configuration

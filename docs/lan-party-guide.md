@@ -40,6 +40,10 @@ A checklist for organizers: what to do before, during and after the event.
 
 - [ ] **Events → Start event** with a name ("Basement LAN #12") – or `lanleecher event start "…"`.
       Counting starts with the next poll; traffic before the start is not booked.
+- [ ] Or plan it in advance under **Events → Planned events** with the first and last day – or
+      `lanleecher event schedule "…" --start 2027-04-15 --end 2027-04-18`. The event then starts
+      at 00:00 on the first day and stops at 24:00 on the last day by itself. Check that the server
+      runs in your time zone (`TZ`).
 - [ ] Open `/board` on the beamer (`?limit=20` or `?limit=50` for longer lists).
 - [ ] Watch the dashboard: all switches green, throughput plausible.
 

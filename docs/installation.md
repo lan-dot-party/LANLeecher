@@ -92,6 +92,7 @@ CGO_ENABLED=0 go build -o bin/lanleecher ./cmd/lanleecher
 | `lanleecher user passwd <name>` | set a new password (ends the user's sessions) |
 | `lanleecher user list` | list users |
 | `lanleecher event start "<name>" [--notes …]` / `event stop` / `event list` | manage events |
+| `lanleecher event schedule "<name>" --start YYYY-MM-DD --end YYYY-MM-DD [--start-time HH:MM] [--end-time HH:MM]` / `event schedules [--all]` / `event unschedule <id>` | plan events that start and stop by themselves (local time zone, last day inclusive) |
 | `lanleecher switch add --name … --host … [--port 161] [--arp]` / `switch list` | add an SNMP v2c switch |
 | `lanleecher version` | print the version |
 

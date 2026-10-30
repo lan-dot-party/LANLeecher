@@ -31,6 +31,7 @@ type App struct {
 	Board    *board.Service
 	Resolver *resolver.Service
 	DHCP     *kea.Manager
+	Planner  *scheduler.EventPlanner
 
 	trusted []netip.Prefix
 }

@@ -6,6 +6,16 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Planned events:** under Events → Planned events, an event can be entered with its first and
+  last day (optionally with start and end times). LANLeecher starts it at the start and stops it at
+  the end by itself, to the second, and records both in the audit log as actor `schedule`. Planned
+  events can be started early, deleted, and must not overlap; the dashboard shows the next one
+  while no event runs. Also available as `lanleecher event schedule|schedules|unschedule` and as
+  `GET/POST /api/v1/schedules` and `DELETE /api/v1/schedules/{id}`. Dates use the server's time
+  zone (`TZ`).
+
 ## [1.1.0] - 2026-10-25
 
 ### Added

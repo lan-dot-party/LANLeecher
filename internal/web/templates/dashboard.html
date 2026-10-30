@@ -58,6 +58,7 @@
   <section class="card empty">
     <h2>{{$.T "dashboard.no_event"}}</h2>
     <p class="muted">{{$.T "dashboard.no_event_hint"}}</p>
+    {{with .NextSchedule}}<p>{{$.T "schedules.next"}}: <strong>{{.Name}}</strong> · {{window .StartsAt .EndsAt}} · <a href="/events">{{$.T "nav.events"}}</a></p>{{end}}
     <p class="muted small">{{$.T "dashboard.live"}}: {{bps .DownBps}} ↓ · {{bps .UpBps}} ↑</p>
   </section>
   {{end}}

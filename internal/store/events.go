@@ -95,37 +95,47 @@ func (db *DB) ListEvents(ctx context.Context, q string, from, to time.Time) ([]*
 
 // StartEvent ends a running event and starts a new one.
 func (db *DB) StartEvent(ctx context.Context, name, notes string) (*Event, error) {
+	var e *Event
+	err := db.InTx(ctx, func(tx *Tx) error {
+		var err error
+		e, err = tx.startEvent(ctx, name, notes, Now())
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return e, nil
+}
+
+// startEvent ends a running event and inserts a new one starting at now.
+func (tx *Tx) startEvent(ctx context.Context, name, notes string, now time.Time) (*Event, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return nil, errors.New("event name must not be empty")
 	}
-	now := Now()
 	e := &Event{Name: name, Notes: notes, StartedAt: now}
-	err := db.InTx(ctx, func(tx *Tx) error {
-		if _, err := tx.tx.ExecContext(ctx, `UPDATE events SET ended_at = ? WHERE ended_at IS NULL`, unix(now)); err != nil {
-			return err
+	if _, err := tx.tx.ExecContext(ctx, `UPDATE events SET ended_at = ? WHERE ended_at IS NULL`, unix(now)); err != nil {
+		return nil, err
+	}
+	base := Slugify(name)
+	slug := base
+	for i := 2; ; i++ {
+		var n int
+		if err := tx.tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM events WHERE slug = ?`, slug).Scan(&n); err != nil {
+			return nil, err
 		}
-		base := Slugify(name)
-		slug := base
-		for i := 2; ; i++ {
-			var n int
-			if err := tx.tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM events WHERE slug = ?`, slug).Scan(&n); err != nil {
-				return err
-			}
-			if n == 0 {
-				break
-			}
-			slug = base + "-" + itoa(int64(i))
+		if n == 0 {
+			break
 		}
-		e.Slug = slug
-		res, err := tx.tx.ExecContext(ctx, `INSERT INTO events (name, slug, started_at, notes) VALUES (?, ?, ?, ?)`,
-			name, slug, unix(now), notes)
-		if err != nil {
-			return err
-		}
-		e.ID, err = res.LastInsertId()
-		return err
-	})
+		slug = base + "-" + itoa(int64(i))
+	}
+	e.Slug = slug
+	res, err := tx.tx.ExecContext(ctx, `INSERT INTO events (name, slug, started_at, notes) VALUES (?, ?, ?, ?)`,
+		name, slug, unix(now), notes)
+	if err != nil {
+		return nil, err
+	}
+	e.ID, err = res.LastInsertId()
 	if err != nil {
 		return nil, err
 	}

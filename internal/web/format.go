@@ -17,6 +17,7 @@ var funcs = template.FuncMap{
 	"bps":     formatBps,
 	"dt":      formatTime,
 	"dtinput": formatTimeInput,
+	"window":  formatScheduleWindow,
 	"hm":      func(t time.Time) string { return t.Local().Format("15:04") },
 	"ago":     formatAgo,
 	"pct":     pct,

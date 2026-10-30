@@ -30,7 +30,8 @@ straight from the switches via SNMP; nothing has to be installed on the guests' 
   registry for MAC addresses.
 - **Hiding** of game servers, caches and uplinks from rankings – they are still counted, and hiding
   applies retroactively.
-- **Events** to start and stop, compare and export as CSV or JSON.
+- **Events** to start and stop, compare and export as CSV or JSON – or plan them with a date range
+  so they start and stop by themselves.
 - **Accounts** with three roles (viewer, operator, admin), API tokens with scopes, and an audit log.
 - **Light and dark theme**, following the system or chosen per user; English and German.
 - **Packages** for Debian/Ubuntu, Fedora/RHEL, Arch Linux and Alpine, and a multi-arch Docker image.

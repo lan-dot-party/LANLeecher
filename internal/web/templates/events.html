@@ -21,6 +21,57 @@
   </form>
 </section>
 {{end}}
+{{if or .Schedules ($.Can "operator")}}
+<section class="card">
+  <h3>{{$.T "schedules.title"}}</h3>
+  {{if .Schedules}}
+  <table>
+    <thead><tr><th>{{$.T "col.event"}}</th><th>{{$.T "schedules.window"}}</th><th>{{$.T "schedules.state"}}</th>{{if $.Can "operator"}}<th></th>{{end}}</tr></thead>
+    <tbody>
+    {{range .Schedules}}
+    <tr>
+      <td>{{if .Event}}<a href="/events/{{.Event.Slug}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}{{if .Notes}} <span class="muted small">{{.Notes}}</span>{{end}}</td>
+      <td>{{window .StartsAt .EndsAt}}</td>
+      <td>{{if eq .State "running"}}<span class="badge badge-live">{{$.T "events.running"}}</span>{{else if eq .State "missed"}}<span class="badge badge-warn">{{$.T "schedules.missed"}}</span>{{else}}<span class="badge badge-muted">{{$.T "schedules.planned"}}</span>{{end}}</td>
+      {{if $.Can "operator"}}
+      <td class="actions">
+        {{if eq .State "planned"}}
+        <form method="post" action="/events/schedules/{{.ID}}/start" class="inline"{{if $.Data.Active}} data-confirm="{{$.T "events.start_confirm"}}"{{end}}>
+          <input type="hidden" name="_csrf" value="{{$.CSRF}}">
+          <button type="submit">{{$.T "schedules.start_now"}}</button>
+        </form>
+        {{end}}
+        <form method="post" action="/events/schedules/{{.ID}}/delete" class="inline" data-confirm="{{if eq .State "running"}}{{$.T "schedules.delete_running_confirm"}}{{else}}{{$.T "schedules.delete_confirm"}}{{end}}">
+          <input type="hidden" name="_csrf" value="{{$.CSRF}}">
+          <button type="submit" class="danger">{{$.T "action.delete"}}</button>
+        </form>
+      </td>
+      {{end}}
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{end}}
+  {{if $.Can "operator"}}
+  <form method="post" action="/events/schedules" class="form-grid">
+    <input type="hidden" name="_csrf" value="{{$.CSRF}}">
+    <label>{{$.T "events.name"}}<input name="name" required maxlength="100" placeholder="{{$.T "events.name_placeholder"}}"></label>
+    <label>{{$.T "events.notes"}}<input name="notes" maxlength="500"></label>
+    <fieldset>
+      <legend>{{$.T "schedules.window"}}</legend>
+      <label>{{$.T "schedules.start_date"}}<input type="date" name="start_date" required></label>
+      <label>{{$.T "schedules.start_time"}}<input type="time" name="start_time"></label>
+      <label>{{$.T "schedules.end_date"}}<input type="date" name="end_date" required></label>
+      <label>{{$.T "schedules.end_time"}}<input type="time" name="end_time"></label>
+    </fieldset>
+    <div class="actions">
+      <button type="submit" class="primary">{{$.T "schedules.create"}}</button>
+      <p class="muted small">{{$.T "schedules.hint"}}</p>
+    </div>
+  </form>
+  {{end}}
+</section>
+{{end}}
 <form class="filters card" method="get" action="/events">
   <input type="search" name="q" value="{{.Q}}" placeholder="{{$.T "events.search"}}">
   <label>{{$.T "rankings.from"}}<input type="date" name="from" value="{{.From}}"></label>
