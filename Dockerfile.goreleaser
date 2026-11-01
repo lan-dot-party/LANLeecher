@@ -1,6 +1,6 @@
 # LANLeecher image for GoReleaser (dockers_v2): the pre-built binary of each
 # platform lies in $TARGETPLATFORM/ of the build context.
-FROM alpine:3.21
+FROM alpine:3.24
 
 ARG TARGETPLATFORM
 
