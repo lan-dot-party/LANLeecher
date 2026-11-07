@@ -186,3 +186,92 @@ func TestPollAndBookAgainstSimulator(t *testing.T) {
 		t.Error("event summary includes uplink traffic")
 	}
 }
+
+// TestSwitchWithoutFDB polls a simulated Grandstream GWN7721, which has 64-bit
+// counters but no forwarding table: port traffic is counted, nothing is
+// attributed to clients, and after two empty FDB reads the poller reports
+// that the switch has no forwarding table.
+func TestSwitchWithoutFDB(t *testing.T) {
+	if testing.Short() {
+		t.Skip("integration test")
+	}
+	target := startSimulator(t)
+	target.Creds.Community = "gwn7721"
+	ctx := context.Background()
+
+	db, err := store.Open(store.Options{Path: filepath.Join(t.TempDir(), "test.db")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	if err := db.Migrate(ctx, log); err != nil {
+		t.Fatal(err)
+	}
+	raw := make([]byte, 32)
+	_, _ = rand.Read(raw)
+	key, _ := secret.New(raw)
+	plain, _ := target.Creds.Marshal()
+	enc, _ := key.Encrypt(plain)
+	sw := &store.Switch{Name: "gwn", Host: target.Host, Port: target.Port, SNMPVersion: "v2c", CredentialsEnc: enc,
+		FDBAdapter: "auto", Enabled: true}
+	if err := db.CreateSwitch(ctx, sw); err != nil {
+		t.Fatal(err)
+	}
+	ev, err := db.StartEvent(ctx, "GWN test", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := config.Default()
+	cfg.Polling.Timeout = time.Second
+	m := New(db, key, cfg, nil, log)
+	tgt, err := m.Target(sw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := newPoller(m, sw, tgt)
+
+	p.cycle(ctx) // first reading + FDB (empty)
+	if p.noFDB() {
+		t.Fatal("one empty FDB read must not count as \"no forwarding table\" (normal after a reboot)")
+	}
+	time.Sleep(3 * time.Second)
+	p.cycle(ctx) // deltas are booked now
+	if err := p.pollFDB(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if !p.noFDB() {
+		t.Error("two empty FDB reads: noFDB is false")
+	}
+
+	ports, err := db.ListPorts(ctx, sw.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ports) != 10 {
+		t.Fatalf("ports: %d, want 10", len(ports))
+	}
+	for _, port := range ports {
+		if !port.Physical {
+			t.Errorf("%s classified as not physical", port.IfName)
+		}
+	}
+	rows, err := db.Rankings(ctx, store.RankingQuery{EventID: ev.ID, Order: "down", Limit: 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 0 {
+		t.Errorf("ranking has %d entries, want none (no forwarding table)", len(rows))
+	}
+	traffic, err := db.PortTrafficByEvent(ctx, ev.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var total int64
+	for _, row := range traffic {
+		total += row.BytesDown + row.BytesUp
+	}
+	if total == 0 {
+		t.Error("no port-level traffic booked")
+	}
+}

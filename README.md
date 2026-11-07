@@ -6,7 +6,7 @@ straight from the switches via SNMP; nothing has to be installed on the guests' 
 
 > **Status: pre-release.** Polling via SNMP v2c/v3, accounting per MAC and event, uplink detection,
 > IP and hostname discovery (Kea DHCP, ARP, NetBIOS, mDNS, LLMNR, DNS), web UI in English and German,
-> beamer view, REST API, packages and Docker image. Tested with TP-Link Omada and JetStream switches.
+> beamer view, REST API, packages and Docker image. Tested with TP-Link Omada and JetStream switches, and with a Grandstream GWN7721 (port traffic only).
 > Next up: the first real LAN party. Progress is tracked in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ![The dashboard during an event: totals, live throughput, top downloaders and uploaders](docs/images/dashboard.png)
@@ -58,6 +58,7 @@ straight from the switches via SNMP; nothing has to be installed on the guests' 
 | --- | --- | --- |
 | Any switch with IF-MIB 64-bit counters and BRIDGE-MIB or Q-BRIDGE-MIB | v2c, v3 | **supported** |
 | TP-Link Omada (10-port PoE+, 8× 2.5G + 2× 10G), JetStream T1500G-8T | v2c | **tested** ([notes](docs/switch-compatibility.md#tested-models)) |
+| Grandstream GWN7721 | v2c | **tested, port traffic only** – no MAC table over SNMP ([notes](docs/switch-compatibility.md#tested-models)) |
 | Cisco IOS (FDB per VLAN via `community@vlan`) | v2c, v3 | adapter available, untested |
 | Switches with SNMP v1 only | v1 | not supported ([why](docs/adr/0003-no-snmp-v1.md)) |
 

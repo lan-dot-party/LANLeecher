@@ -100,6 +100,8 @@ var messages = map[string][2]string{
 	"switches.ports":          {"Ports", "Ports"},
 	"switches.last_poll":      {"Letzte Abfrage", "Last poll"},
 	"switches.disabled":       {"deaktiviert", "disabled"},
+	"switches.no_fdb":         {"keine MAC-Tabelle", "no MAC table"},
+	"switches.no_fdb_hint":    {"Der Switch meldet per SNMP keine MAC-Tabelle (FDB). Der Traffic seiner Ports wird gezählt, aber keinem Client zugeordnet (siehe Switch-Kompatibilität).", "The switch reports no forwarding table (FDB) over SNMP. Traffic on its ports is counted but not attributed to clients (see switch compatibility)."},
 	"switches.uplink_hint":    {"Wichtig: Uplinks zu anderen Switchen oder zum Router müssen als Rolle „Uplink“ markiert sein, sonst wird Traffic doppelt oder falsch zugeordnet.", "Important: uplinks to other switches or the router must have the role \"uplink\", otherwise traffic is counted twice or attributed wrongly."},
 	"switches.port":           {"SNMP-Port", "SNMP port"},
 	"switches.version":        {"SNMP-Version", "SNMP version"},

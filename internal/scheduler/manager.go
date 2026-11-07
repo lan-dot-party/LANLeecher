@@ -189,6 +189,9 @@ type Status struct {
 	Running      bool
 	LastDuration time.Duration
 	Interval     time.Duration
+	// NoFDB is set when the last FDB reads succeeded but returned no entries:
+	// the switch's traffic cannot be attributed to clients.
+	NoFDB bool
 }
 
 // Status returns the poller state of a switch.
@@ -201,7 +204,7 @@ func (m *Manager) Status(switchID int64) Status {
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	return Status{Running: true, LastDuration: p.lastDuration, Interval: p.interval}
+	return Status{Running: true, LastDuration: p.lastDuration, Interval: p.interval, NoFDB: p.emptyFDB >= noFDBAfter}
 }
 
 func fingerprint(s *store.Switch) string {

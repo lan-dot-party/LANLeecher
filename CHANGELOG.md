@@ -15,6 +15,13 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   while no event runs. Also available as `lanleecher event schedule|schedules|unschedule` and as
   `GET/POST /api/v1/schedules` and `DELETE /api/v1/schedules/{id}`. Dates use the server's time
   zone (`TZ`).
+- **Switches without a forwarding table** are recognised: after two successful but empty FDB
+  reads in a row, the switch list marks the switch with "no MAC table" and the log says once that
+  its traffic is counted per port but not attributed to clients.
+- Grandstream GWN7721 tested (firmware 1.0.7.128): port traffic works, client attribution does not,
+  because the switch offers no forwarding table over SNMP. See
+  [switch-compatibility.md](docs/switch-compatibility.md). Simulated in the integration tests
+  (`testdata/snmpsim/gwn7721.snmprec`).
 
 ## [1.1.0] - 2026-10-25
 

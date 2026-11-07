@@ -37,6 +37,20 @@ type poller struct {
 	lastDuration time.Duration
 	lastFDB      time.Time
 	lastUnknown  int // FDB entries on unknown interfaces in the last read
+	emptyFDB     int // successful FDB reads in a row that returned no entries
+}
+
+// noFDBAfter is the number of empty FDB reads in a row after which a switch
+// is taken to have no forwarding table at all (Grandstream GWN switches, for
+// example, implement neither BRIDGE-MIB nor Q-BRIDGE-MIB forwarding tables).
+// One empty read is normal right after a switch has booted.
+const noFDBAfter = 2
+
+// noFDB reports whether the switch seems to have no forwarding table.
+func (p *poller) noFDB() bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.emptyFDB >= noFDBAfter
 }
 
 func newPoller(m *Manager, s *store.Switch, t snmp.Target) *poller {
@@ -333,8 +347,18 @@ func (p *poller) pollFDB(ctx context.Context) error {
 	}
 	p.mu.Lock()
 	p.macs = macs
+	if len(entries) == 0 {
+		p.emptyFDB++
+	} else {
+		p.emptyFDB = 0
+	}
+	warnNoFDB := p.emptyFDB == noFDBAfter
 	p.mu.Unlock()
 	p.log.Debug("fdb polled", "entries", len(entries), "lldp_neighbors", len(neighbors))
+	if warnNoFDB {
+		p.log.Warn("the switch reports no forwarding table (MAC to port); traffic on its ports is counted but not attributed to clients",
+			"adapter", src.Name())
+	}
 
 	if p.sw.ARPSource && p.m.resolver != nil && p.m.resolver.Enabled("snmp-arp") {
 		pairs, err := resolver.ReadSNMPARP(g)

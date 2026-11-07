@@ -10,7 +10,8 @@
   {{range .Data.Rows}}
   <tr>
     <td><span class="dot {{if not .Switch.Enabled}}dot-off{{else if .Switch.LastPollOK}}dot-ok{{else}}dot-err{{end}}"></span>
-      <a href="/switches/{{.Switch.ID}}">{{.Switch.Name}}</a>{{if .Switch.ARPSource}} <span class="badge">ARP</span>{{end}}</td>
+      <a href="/switches/{{.Switch.ID}}">{{.Switch.Name}}</a>{{if .Switch.ARPSource}} <span class="badge">ARP</span>{{end}}
+      {{if .Status.NoFDB}} <span class="badge badge-warn" title="{{$.T "switches.no_fdb_hint"}}">{{$.T "switches.no_fdb"}}</span>{{end}}</td>
     <td><code>{{.Switch.Host}}{{if ne .Switch.Port 161}}:{{.Switch.Port}}{{end}}</code></td>
     <td>{{.Switch.SNMPVersion}}</td>
     <td class="small">{{.Switch.SysName}}<br><span class="muted">{{.Switch.SysDescr}}</span></td>
