@@ -18,3 +18,7 @@ coverage.out
 
 # Local scratch files (e.g. downloaded CI logs)
 /temp/
+
+# Python bytecode (examples/*.py)
+__pycache__/
+*.pyc
